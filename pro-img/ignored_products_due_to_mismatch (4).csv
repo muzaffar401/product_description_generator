@@ -1,0 +1,2 @@
+sku,image_name,description,related_products,ignore_reason
+BAISAN_FLOUR_HALF,baisan_half_1_2kg,,,"🚫 CRITICAL MISMATCH: SKU 'BAISAN_FLOUR_HALF' suggests 'Besan Flour' but image shows 'Besan Flour'. Brand match: False, Category match: True. Confidence: high. Web search was used for validation. Reason: The SKU is BAISAN flour, but the image shows JALPUR brand Besan (Gram) Flour. Therefore, the brand is different, and this is a mismatch."

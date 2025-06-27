@@ -1,0 +1,2 @@
+sku,image_name,description,related_products,ignore_reason
+SHAN__KARAHI_FRY_GOSHAT_MASALA50_G,shan__karahi_fry_goshat_masala50_g,,,"🚫 CRITICAL MISMATCH: SKU 'SHAN__KARAHI_FRY_GOSHAT_MASALA50_G' suggests 'Product matching SKU ""SHAN__KARAHI_FRY_GOSHAT_MASALA50_G""' but image shows 'Product image that does not match web reference'. Brand match: False, Category match: False. Confidence: high. Web search was used for validation. Web image comparison was used. Reason: Image does not match web reference for this product"

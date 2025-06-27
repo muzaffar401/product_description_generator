@@ -1,0 +1,8 @@
+python-multipart
+pandas
+openpyxl
+python-dotenv
+google-generativeai
+openai
+Pillow
+streamlit
