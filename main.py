@@ -188,6 +188,122 @@ REQUIREMENTS:
 """
         return self._make_api_call(prompt)
 
+    def find_related_products_with_image(self, current_sku, current_image_bytes, current_mime_type, all_products_data, num_related=3):
+        """
+        Find related products using PURE image analysis only.
+        SKU is completely ignored - only visual content matters.
+        """
+        # Filter out the current product from the list
+        other_products = [(sku, img_bytes, mime) for sku, img_bytes, mime in all_products_data if sku != current_sku]
+        
+        if not other_products:
+            return []
+        
+        # STEP 1: Analyze what the current image shows (pure visual analysis)
+        current_image_prompt = """Look at this image and tell me ONLY what type of product/object you see.
+
+CRITICAL: 
+- IGNORE ALL TEXT, LABELS, OR PRODUCT NAMES
+- Look ONLY at the visual content: shapes, colors, materials, objects
+- Do NOT read any text on the product or packaging
+
+What do you see? Choose the most specific category:
+- running shoes / sneakers / athletic footwear
+- dress shoes / formal footwear
+- spice packets / seasoning containers
+- electronics / gadgets / devices
+- clothing / apparel / garments
+- food items / beverages
+- cosmetics / beauty products
+- kitchen items / utensils
+- other (be specific)
+
+Respond with ONLY the category name, nothing else."""
+
+        # Get what the current image shows
+        current_category_response = self._make_api_call(current_image_prompt, image_bytes=current_image_bytes, mime_type=current_mime_type)
+        
+        if not current_category_response or current_category_response == "API_CALL_FAILED":
+            return []
+        
+        current_category = current_category_response.strip().lower()
+        print(f"Current image category: {current_category}")
+        
+        # STEP 2: Analyze each other product image individually to find matches
+        matching_products = []
+        
+        for other_sku, other_img_bytes, other_mime_type in other_products:
+            # Analyze each other product image
+            other_image_prompt = f"""Look at this image and tell me ONLY what type of product/object you see.
+
+CRITICAL: 
+- IGNORE ALL TEXT, LABELS, OR PRODUCT NAMES
+- Look ONLY at the visual content: shapes, colors, materials, objects
+- Do NOT read any text on the product or packaging
+
+What do you see? Choose the most specific category:
+- running shoes / sneakers / athletic footwear
+- dress shoes / formal footwear
+- spice packets / seasoning containers
+- electronics / gadgets / devices
+- clothing / apparel / garments
+- food items / beverages
+- cosmetics / beauty products
+- kitchen items / utensils
+- other (be specific)
+
+Respond with ONLY the category name, nothing else."""
+
+            other_category_response = self._make_api_call(other_image_prompt, image_bytes=other_img_bytes, mime_type=other_mime_type)
+            
+            if other_category_response and other_category_response != "API_CALL_FAILED":
+                other_category = other_category_response.strip().lower()
+                print(f"Product {other_sku} image category: {other_category}")
+                
+                # Check if categories match (allowing for variations)
+                if self._categories_match(current_category, other_category):
+                    matching_products.append(other_sku)
+                    print(f"✓ Match found: {other_sku} (both are {current_category})")
+                else:
+                    print(f"✗ No match: {other_sku} ({other_category} vs {current_category})")
+        
+        # Return top matches
+        return matching_products[:num_related]
+
+    def _categories_match(self, category1, category2):
+        """
+        Check if two categories match, allowing for variations in naming.
+        """
+        # Normalize categories
+        cat1 = category1.lower().strip()
+        cat2 = category2.lower().strip()
+        
+        # Direct match
+        if cat1 == cat2:
+            return True
+        
+        # Shoe variations
+        shoe_keywords = ['shoe', 'sneaker', 'footwear', 'athletic', 'running', 'dress']
+        if any(keyword in cat1 for keyword in shoe_keywords) and any(keyword in cat2 for keyword in shoe_keywords):
+            return True
+        
+        # Spice variations
+        spice_keywords = ['spice', 'seasoning', 'masala', 'condiment']
+        if any(keyword in cat1 for keyword in spice_keywords) and any(keyword in cat2 for keyword in spice_keywords):
+            return True
+        
+        # Electronics variations
+        electronic_keywords = ['electronic', 'gadget', 'device', 'phone', 'laptop']
+        if any(keyword in cat1 for keyword in electronic_keywords) and any(keyword in cat2 for keyword in electronic_keywords):
+            return True
+        
+        # Clothing variations
+        clothing_keywords = ['clothing', 'apparel', 'garment', 'shirt', 'pants']
+        if any(keyword in cat1 for keyword in clothing_keywords) and any(keyword in cat2 for keyword in clothing_keywords):
+            return True
+        
+        return False
+
     def find_related_products(self, current_sku_or_title, all_skus, num_related=3):
         skus_to_search = [s for s in all_skus if s and s != current_sku_or_title]
         if not skus_to_search:

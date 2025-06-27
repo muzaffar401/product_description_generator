@@ -198,9 +198,32 @@ def process_products_in_background(generator, df, image_name_mapping, output_fil
         print(f"API connection test: {api_message}")
         
         total_products = len(df)
-        all_skus = []
-        if 'sku' in df.columns:
-            all_skus = df['sku'].dropna().tolist()
+        
+        # Collect all product image data for related products analysis
+        all_products_data = []
+        for i, row in df.iterrows():
+            sku = row.get('sku')
+            image_name = row.get('image_name')
+            
+            if pd.notna(sku) and str(sku).strip() and pd.notna(image_name) and str(image_name).strip():
+                # Get image file
+                excel_name, excel_extension = os.path.splitext(image_name)
+                image_file = image_name_mapping.get(excel_name)
+                
+                if image_file:
+                    try:
+                        image_file.seek(0)
+                        image_bytes = image_file.read()
+                        image_file.seek(0)
+                        
+                        # Validate image format
+                        img = Image.open(io.BytesIO(image_bytes))
+                        mime_type = Image.MIME[img.format]
+                        
+                        all_products_data.append((sku, image_bytes, mime_type))
+                    except Exception as e:
+                        print(f"Error processing image for {sku}: {str(e)}")
+                        continue
 
         # Ensure description and related_products columns exist
         if 'description' not in df.columns:
@@ -292,9 +315,18 @@ def process_products_in_background(generator, df, image_name_mapping, output_fil
                     print(f"Description generated: {description[:50]}...")
                     
                     print(f"Making related products API call for {current_item_identifier}")
-                    related = generator.find_related_products(sku, all_skus)
+                    # Use the new pure image-based analysis method
+                    print(f"Starting PURE IMAGE ANALYSIS (SKU completely ignored)")
+                    print(f"Current image file: {image_name}")
+                    print(f"Current SKU (ignored): {sku}")
+                    print(f"Will analyze each product image individually for visual similarity")
+                    related = generator.find_related_products_with_image(sku, image_bytes, mime_type, all_products_data)
                     related_products_str = ' | '.join(related) if related else "No related products found."
-                    print(f"Related products found: {len(related) if related else 0}")
+                    print(f"Final result: Found {len(related) if related else 0} visually similar products")
+                    if related:
+                        print(f"Visually similar products: {related_products_str}")
+                    else:
+                        print("No visually similar products found")
 
                 except Exception as img_error:
                     error_message = f"Image processing failed: {str(img_error)}"
